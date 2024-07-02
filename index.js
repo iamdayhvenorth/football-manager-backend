@@ -1,1 +1,3 @@
-console.log("Server folder");
+const express = require('express')
+
+const app = express()
