@@ -2,7 +2,9 @@ const express = require('express')
 const connectDB = require("./db/connectDB")
 const cookieParser = require("cookie-parser")
 const cors = require("cors")
+
 const authRoutes = require('./routes/authRoutes')
+const customerRoutes = require("./routes/customerRoutes.js")
 
 
 require("dotenv").config()
@@ -24,6 +26,7 @@ app.get("/", (req,res) => {
 
 // routes
 app.use('/auth', authRoutes)
+app.use("/customers", customerRoutes)
 
 
 connectDB()
