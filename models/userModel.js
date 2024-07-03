@@ -1,5 +1,6 @@
 const mongoose = require("mongoose")
 const bcrypt = require("bcryptjs")
+const { type } = require("../validators/userValidator")
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -28,7 +29,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: ["male", "female",]
-    }
+    },
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
 },{timestamps: true})
 
 userSchema.pre("save", async function () {
@@ -37,8 +42,8 @@ userSchema.pre("save", async function () {
     this.password = hashedPassword
 })
 
-const user = mongoose.model("users", userSchema)
-module.exports = user
+const User = mongoose.model("User", userSchema)
+module.exports = User
 
 
 
