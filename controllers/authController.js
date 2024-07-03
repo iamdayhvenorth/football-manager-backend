@@ -7,8 +7,8 @@ const User = require("../models/userModel")
 const EmailVerification = require("../models/userEmailVerificationModel")
 const sendEmail = require("../utils/sendEmail")
 
-const generateJwtToken = (userId) => {
-   return jwt.sign({userId},process.env.JWT_SECRET_KEY,{
+const generateJwtToken = (payload) => {
+   return jwt.sign({userId: payload._id,role:payload.role},process.env.JWT_SECRET_KEY,{
         expiresIn: "1d"
     })
 }
@@ -33,7 +33,7 @@ const registerUser =  async (req,res) => {
         const newUser = await User.create({firstName, lastName, password,dob,email,gender})
         
         // generate jwt token
-        const accessToken = generateJwtToken(newUser._id) 
+        const accessToken = generateJwtToken(newUser) 
 
 
         // send token to client through cookie- httpOnly
@@ -104,7 +104,7 @@ const loginUser = async (req,res) => {
         if(!isMatch) return res.status(401).json({errMsg: "Incorrect email or password"})
             
         // generate jwt token
-        const accessToken = generateJwtToken(user._id)
+        const accessToken = generateJwtToken(user)
         
         // send token to client through cookie- httpOnly
         res.cookie("jwt",accessToken,{
@@ -126,7 +126,7 @@ const loginUser = async (req,res) => {
 const getUserProfile = async (req,res) => {
     // get userId from url params to verify from the database
     const {userId} = req.params
-    const authenticatedUserId = req.user
+    const authenticatedUserId = req.user.userId
     // check if authenticated user is the same as the user whose profile is requested from the params
     if(authenticatedUserId  === userId) {
         try{
@@ -147,7 +147,7 @@ const updateUserProfile = async (req,res) => {
   
        // get userId from url params to verify from the database
        const {userId} = req.params
-       const authenticatedUserId = req.user
+       const authenticatedUserId = req.user.userId
        // check if authenticated user is the same as the user whose profile is requested from the params
        if(authenticatedUserId  === userId) {
            try{
@@ -166,7 +166,7 @@ const updateUserProfile = async (req,res) => {
                     gender:user.gender
                 }, 
                 {new: true}
-            )
+            ).select("-password")
  
                return res.status(200).json(updatedUser)
            }catch(err) {
@@ -178,5 +178,18 @@ const updateUserProfile = async (req,res) => {
        }
 } 
 
+const getAllUsers = async (req,res) => {
+    const {role} = req.user
+    if (role !== "Admin") return res.sendStatus(403)
+    try{
+        // get all users from the database
+        const users = await User.find({}).select('-password')
+        return res.status(200).json(users)
+    }catch(err) {
+        console.log(err.message)
+        return res.sendStatus(500)
+    }
+}
 
-module.exports = {registerUser,loginUser,getUserProfile,updateUserProfile}
+
+module.exports = {registerUser,loginUser,getUserProfile,updateUserProfile,getAllUsers}
