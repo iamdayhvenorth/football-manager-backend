@@ -123,5 +123,25 @@ const loginUser = async (req,res) => {
     
 }
 
+const getUserProfile = async (req,res) => {
+    // get userId from url params to verify from the database
+    const {userId} = req.params
+    const authenticatedUserId = req.user
+    // check if authenticated user is the same as the user whose profile is requested from the params
+    if(authenticatedUserId  === userId) {
+        try{
+            // check if user with the ID exist in the DB
+            const user = await User.findById({_id:authenticatedUserId}).select('-password')
+            if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
+            return res.status(200).json(user)
+        }catch(err) {
+            console.log(err.message)
+            return res.sendStatus(500)
+        }
+    }
+   
+    
+}
 
-module.exports = {registerUser,loginUser}
+
+module.exports = {registerUser,loginUser,getUserProfile}
