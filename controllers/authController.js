@@ -138,10 +138,45 @@ const getUserProfile = async (req,res) => {
             console.log(err.message)
             return res.sendStatus(500)
         }
-    }
-   
-    
+    }else{
+        return res.status(401).json({errMsg: "Unauthorized"})
+       }
 }
 
+const updateUserProfile = async (req,res) => {
+  
+       // get userId from url params to verify from the database
+       const {userId} = req.params
+       const authenticatedUserId = req.user
+       // check if authenticated user is the same as the user whose profile is requested from the params
+       if(authenticatedUserId  === userId) {
+           try{
+               // check if user with the ID exist in the DB
+               const user = await User.findById({_id:authenticatedUserId}).select('-password')
+               if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
 
-module.exports = {registerUser,loginUser,getUserProfile}
+               // update user profile with new data from req.body
+               const updatedUser = await User.findByIdAndUpdate(
+                {_id: authenticatedUserId}, 
+                {
+                    firstName: req.body.firstName || user.firstName,
+                    lastName: req.body.lastName || user.lastName,
+                    dob: req.body.dob || user.dob,
+                    email: user.email,
+                    gender:user.gender
+                }, 
+                {new: true}
+            )
+ 
+               return res.status(200).json(updatedUser)
+           }catch(err) {
+               console.log(err.message)
+               return res.sendStatus(500)
+           }
+       }else{
+        return res.status(401).json({errMsg: "Unauthorized to update user profile"})
+       }
+} 
+
+
+module.exports = {registerUser,loginUser,getUserProfile,updateUserProfile}
