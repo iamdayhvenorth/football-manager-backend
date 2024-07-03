@@ -13,7 +13,6 @@ const generateJwtToken = (payload) => {
     })
 }
 
-
 const registerUser =  async (req,res) => {
 
     // validate all the req.body info 
@@ -115,12 +114,24 @@ const loginUser = async (req,res) => {
             sameSite: "none",
             secure: true
         })
-        return res.sendStatus(200)
+        return res.status(200).json({accessToken})
     } catch (error) {
         console.log(error)
         return res.sendStatus(500)
     }
     
+}
+
+const logoutUser = async (req,res) => {
+    res.cookie("jwt","",{
+        path: "/",
+        httpOnly: true,
+        expires: new Date(0),
+        maxAge: 1000 * 60 * 60 * 24,
+        sameSite: "none",
+        secure: true
+    })
+    return res.status(200).json({msg: "Successfully logged out"})
 }
 
 const getUserProfile = async (req,res) => {
@@ -179,6 +190,7 @@ const updateUserProfile = async (req,res) => {
 } 
 
 const getAllUsers = async (req,res) => {
+    
     const {role} = req.user
     if (role !== "Admin") return res.sendStatus(403)
     try{
@@ -191,5 +203,40 @@ const getAllUsers = async (req,res) => {
     }
 }
 
+const changePassword = async (req,res) => {
+    
+    // get old password from the request
+    const {oldPassword,newPassword,confirmNewPassword} = req.body
+    // check authenticated userId to verify if the user exist in the db
+    const authenticatedUserId = req.user.userId
+    try{
+        const user = await User.findById({_id:authenticatedUserId})
+        if(!user) return res.status(404).json({errMsg: "User not found, please sign up"})
+        
+        if(!oldPassword || !newPassword || !confirmNewPassword) return res.status(400).json({errMsg: "Please fill in all fields"})
+        if(newPassword !== confirmNewPassword) return res.status(400).json({errMsg: "New password and confirm password do not match"})
+        if(oldPassword === newPassword) return res.status(400).json({errMsg: "old password cannot not used as new password"})
+        // compare old password with user's existing password in the database
+        const isPasswordMatch = await bcrypt.compare(oldPassword, user.password)
+        if(!isPasswordMatch) return res.status(401).json({errMsg: "Old password is incorrect"})
 
-module.exports = {registerUser,loginUser,getUserProfile,updateUserProfile,getAllUsers}
+        user.password = newPassword
+        await user.save()
+        return res.status(200).json({msg: "Password changed successfully"})
+    }catch(err){
+        console.log(err.message)
+        return res.sendStatus(500)
+    }
+
+}
+
+
+module.exports = {
+    registerUser,
+    loginUser,
+    getUserProfile,
+    updateUserProfile,
+    getAllUsers,
+    changePassword,
+    logoutUser
+}
