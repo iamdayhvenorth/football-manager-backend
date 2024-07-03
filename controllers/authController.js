@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken")
+const bcrypt = require("bcryptjs")
 const crypto = require("crypto")
 const validateUser = require("../validators/userValidator")
+const validateLogin = require("../validators/loginValidator")
 const User = require("../models/userModel")
 const EmailVerification = require("../models/userEmailVerificationModel")
 const sendEmail = require("../utils/sendEmail")
@@ -84,5 +86,42 @@ const registerUser =  async (req,res) => {
     
 }
 
+const loginUser = async (req,res) => {
+    // validate all the req.body info 
+    const {error,value} = validateLogin.validate({...req.body})
+    if(error) return res.status(400).json({errMsg: error.details[0].message})
 
-module.exports = {registerUser}
+    const {email, password} = value
+    
+    try {
+        // check if user exist in the database
+        const user = await User.findOne({email})
+        // if user exist ? check password : => User not found
+        if(!user) return res.status(400).json({errMsg: "User not found"})
+        
+        // check if password match
+        const isMatch = await bcrypt.compare(password, user.password)
+        if(!isMatch) return res.status(401).json({errMsg: "Incorrect email or password"})
+            
+        // generate jwt token
+        const accessToken = generateJwtToken(user._id)
+        
+        // send token to client through cookie- httpOnly
+        res.cookie("jwt",accessToken,{
+            path: "/",
+            httpOnly: true,
+            expires: new Date(Date.now() + (24 * 60 * 60 * 1000)),
+            maxAge: 1000 * 60 * 60 * 24,
+            sameSite: "none",
+            secure: true
+        })
+        return res.sendStatus(200)
+    } catch (error) {
+        console.log(error)
+        return res.sendStatus(500)
+    }
+    
+}
+
+
+module.exports = {registerUser,loginUser}
