@@ -8,7 +8,9 @@ const {
     changePassword,
     logoutUser,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    resetEmaiLink,
+    verifyEmail
 } = require("../controllers/authController")
 
 const authenticateUser = require("../middlewares/authenticateUser")
@@ -23,6 +25,8 @@ router.put("/profile/change-password", authenticateUser,changePassword)
 router.put("/profile/:userId", authenticateUser, updateUserProfile)
 router.post("/forgotpassword", forgotPassword)
 router.put("/resetpassword", resetPassword)
+router.get("/emailtoken", authenticateUser, resetEmaiLink)
+router.get("/verify-email", verifyEmail)
 
 router.get("/users", authenticateUser, authorizePermission, getAllUsers)
 

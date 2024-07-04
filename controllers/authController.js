@@ -38,7 +38,6 @@ const registerUser =  async (req,res) => {
         // generate jwt token
         const accessToken = generateJwtToken(newUser) 
 
-
         // send token to client through cookie- httpOnly
         res.cookie("jwt",accessToken,{
             path: "/",
@@ -53,7 +52,7 @@ const registerUser =  async (req,res) => {
          const verificationToken = crypto.randomBytes(32).toString("hex") + newUser._id
 
         // send user a welcome message and email verification link
-        const verifyLink = `${process.env.CLIENT_URL}/auth/verify-email/?token=${verificationToken}&email=${newUser.email}`
+        const verifyLink = `${process.env.ORIGIN_URL}/auth/verify-email/?verifytoken=${verificationToken}&email=${newUser.email}`
         // const subject = "Email Verification"
         const message = `
             <h2>Welcome to our platform, ${newUser.firstName} ${newUser.lastName}!</h2>
@@ -66,12 +65,18 @@ const registerUser =  async (req,res) => {
             <p>Best regards,</p>
             <p>DaveCodeSolutions</p>
         `
-        await sendEmail(process.env.AUTH_EMAIL,newUser.email, "Email Verification", message)
-        
         
         // save verification token in database
-        await EmailVerification.create({userId: newUser._id, verificationToken})
-       
+        await EmailVerification.create({
+            userId: newUser._id, 
+            verificationToken,
+            createdAt: Date.now(),
+            expiresAt: new Date(Date.now() + (20 * 60 * 1000))  // 20 minutes
+        })
+        
+         // send verification email to user
+        await sendEmail(process.env.AUTH_EMAIL,newUser.email, "Email Verification", message)
+
         return res.status(201).json({
             id: newUser._id,
             name: newUser.firstName + " " + newUser.lastName,
@@ -142,6 +147,7 @@ const getUserProfile = async (req,res) => {
     // get userId from url params to verify from the database
     const {userId} = req.params
     const authenticatedUserId = req.user.userId
+    const role = req.user.role
     // check if authenticated user is the same as the user whose profile is requested from the params
     if(authenticatedUserId  === userId) {
         try{
@@ -263,7 +269,7 @@ const forgotPassword = async (req,res) => {
         userId: user._id,
         token: hashedResetToken,
         createdAt: Date.now(),
-        expires: Date.now() + (20 * 60 * 1000)
+        expiresAt: Date.now() + (20 * 60 * 1000)
     })
     const resetLink = `${process.env.CLIENT_URL}/resetpassword/?token=${resetToken}`
     
@@ -309,7 +315,7 @@ const resetPassword = async (req,res) => {
     try {
         const foundToken = await Token.findOne({
             token: resetToken,
-            expires: {$gte: Date.now()} // check if existing time is still greater the current time.. meaning it has not exp
+            expiresAt: {$gte: Date.now()} // check if existing time is still greater the current time.. meaning it has not exp
         })
     
         if(!foundToken) return res.status(404).json({errMsg: "Invalid or expired token"})
@@ -329,6 +335,92 @@ const resetPassword = async (req,res) => {
     }
 }
 
+const resetEmaiLink = async (req,res) => {
+    const {userId} = req.user
+
+    try {
+         // check if user exist in the database
+    const user = await User.findById({_id:userId}).select("-password")
+    if(!user) return res.status(404).json({errMsg: "User not found"})
+
+
+    // if token exist in the db, delete before generating a new token
+    const foundToken = await EmailVerification.findOne({userId: user._id})
+    if(foundToken) await EmailVerification.deleteOne({_id: foundToken._id})
+    
+    // generate email verification token
+    const newToken = crypto.randomBytes(32).toString("hex") + user._id
+    
+    await EmailVerification.create({
+        userId: user._id,
+        verificationToken: newToken,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (20 * 60 * 1000) // 20 minutes expiry time
+     })
+    const verifyLink = `${process.env.ORIGIN_URL}/auth/verify-email/?verifytoken=${newToken}&email=${user.email}`
+    
+    const message = `
+        <h2>Hello, ${user.firstName}</h2>
+        <p>Here is your email verification link, if verified already please ignore</p>
+        <a href="${verifyLink}">${verifyLink}</a>
+        <p>This link will expire in 20 minutes.</p>
+
+        <p>Best regards,</p>
+        <p>DaveCodeSolutions Team</p>
+    `
+        await sendEmail(process.env.AUTH_EMAIL,user.email, "Email Verification", message)
+    
+    //  send a notification link to user via email
+    return res.status(200).json({msg: "A verification link sent to your email successfully"})
+    } catch (error) {
+        console.log(error)
+        return res.sendStatus(500)
+        
+    }
+}
+
+const verifyEmail = async (req,res) => {
+    const {verifytoken,email} = req.query
+    if(!verifytoken) return res.status(400).json({errMsg: "Token and Email required for verification"})
+    
+    try {
+        const user = await User.findOne({email})
+        if(!user) return res.status(404).json({errMsg: "User not found"})
+            
+        const foundToken = await EmailVerification.findOne({
+            userId: user._id,
+            verificationToken: verifytoken,
+            expiresAt: {$gte: Date.now()} // check if existing time is still greater the current time.. meaning it has not exp
+        })
+    
+        if(!foundToken) return res.status(404).json({errMsg: "Invalid or expired token"})
+        if(user.isEmailVerified === true ) return res.status(409).json({errMsg: "Email Verified Already"})
+    
+        user.isEmailVerified = true
+        await user.save()
+
+        // if token exist in the db, delete it as it is now verified
+        await EmailVerification.deleteOne({_id: foundToken._id})
+
+        // send a notification to user via email
+        const message = `
+        <h2>Hello, ${user.firstName}</h2>
+        <p>Your email verification has been successful.</p>
+        <p>Thank you for verifying your email.</p>
+        
+        <p>Best regards,</p>
+        <p>DaveCodeSolutions Team</p>
+        `
+        await sendEmail(process.env.AUTH_EMAIL,user.email, "Email Verification Success", message)
+        
+        return res.status(200).json({msg: "Email verified successfully"})
+    } catch (error) {
+        console.log(error)
+        return res.sendStatus(500)
+    }
+   
+}
+
 
 module.exports = {
     registerUser,
@@ -339,5 +431,7 @@ module.exports = {
     changePassword,
     logoutUser,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    resetEmaiLink,
+    verifyEmail
 }

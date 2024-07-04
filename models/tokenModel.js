@@ -15,9 +15,11 @@ const TokenSchema = new mongoose.Schema({
         default: Date.now,
         required: true
     },
-    expires: {
+    expiresAt: {
         type: Date,
-        required: true
+        required: true,
+        default: () => new Date(Date.now() + (20 * 60 * 1000)), // 20 minutes from now new Date(Date.now() + (2 * 60 * 1000))
+        expires: 20 * 60 // 20 minutes expiration in seconds
     }
 })
 
