@@ -6,8 +6,11 @@ const {
     updateUserProfile,
     getAllUsers,
     changePassword,
-    logoutUser
+    logoutUser,
+    forgotPassword,
+    resetPassword
 } = require("../controllers/authController")
+
 const authenticateUser = require("../middlewares/authenticateUser")
 const authorizePermission = require("../middlewares/checkPermission")
 const router = express.Router()
@@ -18,6 +21,8 @@ router.get("/logout", logoutUser)
 router.get("/profile/:userId", authenticateUser, getUserProfile)
 router.put("/profile/change-password", authenticateUser,changePassword)
 router.put("/profile/:userId", authenticateUser, updateUserProfile)
+router.post("/forgotpassword", forgotPassword)
+router.put("/resetpassword", resetPassword)
 
 router.get("/users", authenticateUser, authorizePermission, getAllUsers)
 

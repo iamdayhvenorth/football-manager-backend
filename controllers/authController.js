@@ -6,6 +6,10 @@ const validateLogin = require("../validators/loginValidator")
 const User = require("../models/userModel")
 const EmailVerification = require("../models/userEmailVerificationModel")
 const sendEmail = require("../utils/sendEmail")
+const Token = require("../models/tokenModel")
+const validatePassword = require("../validators/passwordValidator")
+
+
 
 const generateJwtToken = (payload) => {
    return jwt.sign({userId: payload._id,role:payload.role},process.env.JWT_SECRET_KEY,{
@@ -214,7 +218,12 @@ const changePassword = async (req,res) => {
         if(!user) return res.status(404).json({errMsg: "User not found, please sign up"})
         
         if(!oldPassword || !newPassword || !confirmNewPassword) return res.status(400).json({errMsg: "Please fill in all fields"})
+
+           // check new password length, it should be minimum of 6 characters long
+        if(newPassword.length < 6) return res.status(400).json({errMsg: "New password should be minimum of 6 characters long"})
+
         if(newPassword !== confirmNewPassword) return res.status(400).json({errMsg: "New password and confirm password do not match"})
+     
         if(oldPassword === newPassword) return res.status(400).json({errMsg: "old password cannot not used as new password"})
         // compare old password with user's existing password in the database
         const isPasswordMatch = await bcrypt.compare(oldPassword, user.password)
@@ -230,6 +239,96 @@ const changePassword = async (req,res) => {
 
 }
 
+const forgotPassword = async (req,res) => {
+    // get email from the request
+    const {email} = req.body
+    if(!email) return res.status(400).json({errMsg: "Please provide email"})
+    
+    try {
+        // check if email exists in the database
+    const user = await User.findOne({email})
+    if(!user) return res.status(404).json({errMsg: "No user found with the provided email"})
+
+    // if token exist in the db, delete before generating a new token
+    let foundToken = await Token.findOne({userId: user._id})
+    if(foundToken) await Token.deleteOne({_id: foundToken._id})
+    // if user found generate a reset password token and save it to the user's email
+    const resetToken = crypto.randomBytes(32).toString("hex") + user._id
+    
+    // hash the reset token before sendin to the db
+    const hashedResetToken = crypto.createHash("sha256").update(resetToken).digest("hex")
+ 
+    // save token to the databse
+    await Token.create({
+        userId: user._id,
+        token: hashedResetToken,
+        createdAt: Date.now(),
+        expires: Date.now() + (20 * 60 * 1000)
+    })
+    const resetLink = `${process.env.CLIENT_URL}/resetpassword/?token=${resetToken}`
+    
+    const message = `
+        <h2>Hello ${user.firstName}</h2>
+        <p>You requested a password reset for your account. If this was not requested by you please ignore.</p>
+        <a href="${resetLink}">${resetLink}</a>
+        <p>This link will expire in 20 minutes.</p>
+        <p>Thank you for using our platform!</p>
+        
+        <p>Regards,</p>
+        <p>DaveCodeSolutions Team.</p>
+        `
+        
+    // send email to the user with the reset link
+    await sendEmail(process.env.AUTH_EMAIL,user.email, "Password Reset Request", message)
+    
+    return res.status(200).json({msg: "Password reset email sent successfully"})
+    } catch (error) {
+        console.log(error.message)
+        return res.sendStatus(500)
+    }
+ 
+}
+
+const resetPassword = async (req,res) => {
+    // get token from the request query
+    const {token} = req.query
+
+    // get the password from the req.body and validate
+    const {error,value}= validatePassword.validate({...req.body})
+    if(error) return res.status(400).json({errMsg: error.details[0].message})
+    const {newPassword, confirmNewPassword} = value
+
+
+    if(!newPassword || !confirmNewPassword) return res.status(400).json({errMsg: "Please fill in all fields"})
+    // check if newpass matches confirmpass
+    if(newPassword!== confirmNewPassword) return res.status(400).json({errMsg: "New password and confirm password do not match"})
+
+    // hash the token to compare with the hashed token stored in the db
+    const resetToken = crypto.createHash("sha256").update(token).digest("hex")
+    
+    try {
+        const foundToken = await Token.findOne({
+            token: resetToken,
+            expires: {$gte: Date.now()} // check if existing time is still greater the current time.. meaning it has not exp
+        })
+    
+        if(!foundToken) return res.status(404).json({errMsg: "Invalid or expired token"})
+        
+        
+        const user = await User.findOne({ _id: foundToken.userId}).select("-password")
+        if(!user) return res.status(404).json({errMsg: "User not found"})
+    
+        // update the existing user password with the new password sent from the body
+        user.password = newPassword
+        await user.save()
+        return res.status(200).json({success: true, msg: "Password reset successfully, Please Login"})
+
+    } catch (error) {
+        console.log(error.message)
+        return res.sendStatus(500)
+    }
+}
+
 
 module.exports = {
     registerUser,
@@ -238,5 +337,7 @@ module.exports = {
     updateUserProfile,
     getAllUsers,
     changePassword,
-    logoutUser
+    logoutUser,
+    forgotPassword,
+    resetPassword
 }
