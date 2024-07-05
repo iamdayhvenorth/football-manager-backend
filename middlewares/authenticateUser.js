@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken")
+const RefreshToken = require("../models/refreshTokenModel")
 
-const authenticateUser = (req,res,next) => {
+
+const authenticateUser =  (req,res,next) => {
     // check if theres an existing accesstoken in the header
     const authHeader = req.headers["authorization"]
     if(!authHeader) return res.status(401).json({ errMsg: "Unauthorized or session expired, please login" })
@@ -8,7 +10,7 @@ const authenticateUser = (req,res,next) => {
     if (!token) return res.status(401).json({ errMsg: "Access denied. Invalid token." })
 
     // verify the token
-    jwt.verify(token,process.env.JWT_SECRET_KEY,(err,decoded) => {
+    jwt.verify(token,process.env.JWT_ACCESS_TOKEN_KEY, (err,decoded) => {
         if(err) return res.sendStatus(403)
         req.user = decoded
         next()
@@ -16,3 +18,4 @@ const authenticateUser = (req,res,next) => {
 }
 
 module.exports = authenticateUser;
+

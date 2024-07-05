@@ -8,14 +8,13 @@ const EmailVerification = require("../models/userEmailVerificationModel")
 const sendEmail = require("../utils/sendEmail")
 const Token = require("../models/tokenModel")
 const validatePassword = require("../validators/passwordValidator")
+const generateJwtToken = require("../utils/generateJwt")
+const RefreshToken = require("../models/refreshTokenModel")
 
 
 
-const generateJwtToken = (payload) => {
-   return jwt.sign({userId: payload._id,role:payload.role},process.env.JWT_SECRET_KEY,{
-        expiresIn: "1d"
-    })
-}
+
+
 
 const registerUser =  async (req,res) => {
 
@@ -36,11 +35,12 @@ const registerUser =  async (req,res) => {
         const newUser = await User.create({firstName, lastName, password,dob,email,gender})
         
         // generate jwt token
-        const accessToken = generateJwtToken(newUser) 
+        const accessToken = generateJwtToken({userId:newUser._id, role:newUser.role},process.env.JWT_ACCESS_TOKEN_KEY, "40s")
+        const refreshToken = generateJwtToken({userId:newUser._id, role:newUser.role},process.env.JWT_REFRESH_TOKEN_KEY, "1d")
+         
 
         // send token to client through cookie- httpOnly
-        res.cookie("jwt",accessToken,{
-            path: "/",
+        res.cookie("jwt",refreshToken,{
             httpOnly: true,
             expires: new Date(Date.now() + (24 * 60 * 60 * 1000)),
             maxAge: 1000 * 60 * 60 * 24,
@@ -72,6 +72,13 @@ const registerUser =  async (req,res) => {
             verificationToken,
             createdAt: Date.now(),
             expiresAt: new Date(Date.now() + (20 * 60 * 1000))  // 20 minutes
+        })
+
+        // save refresh token in database
+        await RefreshToken.create({
+            userId: newUser._id,
+            token: refreshToken,
+            createdAt: Date.now()
         })
         
          // send verification email to user
@@ -112,13 +119,19 @@ const loginUser = async (req,res) => {
         if(!isMatch) return res.status(401).json({errMsg: "Incorrect email or password"})
             
         // generate jwt token
-        const accessToken = generateJwtToken(user)
+        const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "40s")
+        const refreshToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_REFRESH_TOKEN_KEY, "1d")
         
+        // save refresh token in database
+        await RefreshToken.create({
+            userId: user._id,
+            token: refreshToken,
+            createdAt: Date.now(),
+            expiresIn: new Date(Date.now() + (24 * 60 * 60 * 1000))  // 24 hours
+        })
         // send token to client through cookie- httpOnly
-        res.cookie("jwt",accessToken,{
-            path: "/",
+        res.cookie("jwt",refreshToken,{
             httpOnly: true,
-            expires: new Date(Date.now() + (24 * 60 * 60 * 1000)),
             maxAge: 1000 * 60 * 60 * 24,
             sameSite: "none",
             secure: true
@@ -136,7 +149,6 @@ const logoutUser = async (req,res) => {
         path: "/",
         httpOnly: true,
         expires: new Date(0),
-        maxAge: 1000 * 60 * 60 * 24,
         sameSite: "none",
         secure: true
     })
@@ -149,10 +161,12 @@ const getUserProfile = async (req,res) => {
     const authenticatedUserId = req.user.userId
     const role = req.user.role
     // check if authenticated user is the same as the user whose profile is requested from the params
-    if(authenticatedUserId  === userId) {
+    
+    if(authenticatedUserId) {
+        
         try{
             // check if user with the ID exist in the DB
-            const user = await User.findById({_id:authenticatedUserId}).select('-password')
+            const user = await User.findById({_id:userId}).select('-password')
             if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
             return res.status(200).json(user)
         }catch(err) {
@@ -170,15 +184,15 @@ const updateUserProfile = async (req,res) => {
        const {userId} = req.params
        const authenticatedUserId = req.user.userId
        // check if authenticated user is the same as the user whose profile is requested from the params
-       if(authenticatedUserId  === userId) {
+       if(authenticatedUserId) {
            try{
                // check if user with the ID exist in the DB
-               const user = await User.findById({_id:authenticatedUserId}).select('-password')
+               const user = await User.findById({_id:userId}).select('-password')
                if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
 
                // update user profile with new data from req.body
                const updatedUser = await User.findByIdAndUpdate(
-                {_id: authenticatedUserId}, 
+                {_id: userId}, 
                 {
                     firstName: req.body.firstName || user.firstName,
                     lastName: req.body.lastName || user.lastName,
@@ -421,6 +435,45 @@ const verifyEmail = async (req,res) => {
    
 }
 
+const handleRefreshToken = async (req,res) => {
+    const cookies = req.cookies
+    if(!cookies?.jwt) return res.sendStatus(401)
+
+    const refreshToken = cookies.jwt
+
+    try {
+        const foundToken = await RefreshToken.findOne({
+            token: refreshToken,
+            expiresIn: {$gte: Date.now()} // check if existing time is still greater the current time.. meaning it has not exp
+        })
+    
+        if(!foundToken) return res.status(401).json({errMsg: "No token found, please login "})
+        
+        const user = await User.findById(foundToken.userId).select("-password")
+        if(!user) return res.sendStatus(401)
+        console.log(user)
+    
+        // verify the existin token
+        jwt.verify(refreshToken,process.env.JWT_REFRESH_TOKEN_KEY,(err,decoded) => {
+            if(err ) return res.sendStatus(403)
+            
+            // generate new JWT token and refresh token
+            const accessToken = generateJwtToken(
+                {userId:decoded.userId, role:decoded.role},
+                process.env.JWT_ACCESS_TOKEN_KEY,
+                 "40s"
+            )
+            res.json({accessToken})
+        })
+        
+    } catch (error) {
+        console.log(error)
+        return res.sendStatus(500)
+    }
+    
+   
+}
+
 
 module.exports = {
     registerUser,
@@ -433,5 +486,6 @@ module.exports = {
     forgotPassword,
     resetPassword,
     resetEmaiLink,
-    verifyEmail
+    verifyEmail,
+    handleRefreshToken
 }

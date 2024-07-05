@@ -1,14 +1,11 @@
-
-
-const authorizePermission =  (req,res,next) => {
+const validatePermission =  (req,res,next) => {
     // check if user role is equal to admin cos all admin can view all users
-        const {role} = req.user
-        if(role === "Admin") {
+        const {role,userId:authenticatedUserId} = req.user
+        if(role === "Admin"  || authenticatedUserId === req.params.userId) {
             next();
         } else {
-            return res.status(403).json({msg:"Unauthorized access. Only admin can access this endpoint."})
+            return res.status(403).json({msg:"Unauthorized access. Only admin or authenticated user can have access"})
         }
-    }
-   
+}
 
-module.exports = authorizePermission;
+module.exports = validatePermission;

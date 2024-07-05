@@ -2,25 +2,29 @@ const express = require('express')
 const connectDB = require("./db/connectDB")
 const cookieParser = require("cookie-parser")
 const cors = require("cors")
-
+require("dotenv").config()
 const authRoutes = require('./routes/authRoutes')
 const customerRoutes = require("./routes/customerRoutes.js")
 
-
-require("dotenv").config()
 
 const PORT = process.env.PORT || 3500
 
 const app = express()
 
 // default middlewares
+app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
-app.use(cors())
-app.use(cookieParser())
+app.use(cors({
+    origin: "*", // allow requests from this origin
+    credentials: true, // allow sessions to persist across different requests
+}))
+
+
 
 
 app.get("/", (req,res) => {
+    console.log(req.cookies)
     res.send("Page is Working fine")
 })
 
