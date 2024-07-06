@@ -5,7 +5,9 @@ const cors = require("cors")
 require("dotenv").config()
 const authRoutes = require('./routes/authRoutes')
 const customerRoutes = require("./routes/customerRoutes.js")
+const errorHandler = require('./middlewares/errorHandler.js')
 
+// const rateLimiter = require("express-rate-limit")
 
 const PORT = process.env.PORT || 3500
 
@@ -21,6 +23,13 @@ app.use(cors({
 }))
 
 
+// app.use(
+//     rateLimiter({
+//         windowMs: 1 * 60 * 1000,
+//         max: 2
+//     })
+// )
+
 
 
 app.get("/", (req,res) => {
@@ -28,6 +37,8 @@ app.get("/", (req,res) => {
     res.send("Page is Working fine")
 })
 
+// custom middleware
+app.use(errorHandler)
 // routes
 app.use('/auth', authRoutes)
 app.use("/customers", customerRoutes)

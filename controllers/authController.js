@@ -10,7 +10,8 @@ const Token = require("../models/tokenModel")
 const validatePassword = require("../validators/passwordValidator")
 const generateJwtToken = require("../utils/generateJwt")
 const RefreshToken = require("../models/refreshTokenModel")
-
+const asyncHandler = require("express-async-handler")
+const  handler = require("../middlewares/errorHandler")
 
 
 
@@ -101,22 +102,28 @@ const registerUser =  async (req,res) => {
     
 }
 
-const loginUser = async (req,res) => {
+const loginUser = asyncHandler( async (req,res) => {
     // validate all the req.body info 
     const {error,value} = validateLogin.validate({...req.body})
-    if(error) return res.status(400).json({errMsg: error.details[0].message})
-
+    if(error) {
+        res.status(400)
+         throw new Error( error.details[0].message)
+    } 
     const {email, password} = value
-    
-    try {
         // check if user exist in the database
         const user = await User.findOne({email})
         // if user exist ? check password : => User not found
-        if(!user) return res.status(400).json({errMsg: "User not found"})
+        if(!user) {
+            res.status(401)
+            throw new Error("Incorrect email or password")
+        }
         
         // check if password match
         const isMatch = await bcrypt.compare(password, user.password)
-        if(!isMatch) return res.status(401).json({errMsg: "Incorrect email or password"})
+        if(!isMatch) {
+            res.status(401)
+            throw new Error("Incorrect email or password")
+        }
             
         // generate jwt token
         const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "40s")
@@ -134,15 +141,55 @@ const loginUser = async (req,res) => {
             httpOnly: true,
             maxAge: 1000 * 60 * 60 * 24,
             sameSite: "none",
-            secure: true
+            secure: true  //you can remove or set to false during testing in devlopment mode  while using Thunder client 
         })
         return res.status(200).json({accessToken})
-    } catch (error) {
-        console.log(error)
-        return res.sendStatus(500)
-    }
     
-}
+    
+})
+
+// const loginUser = async (req,res) => {
+//     // validate all the req.body info 
+//     const {error,value} = validateLogin.validate({...req.body})
+//     if(error) return res.status(400).json({errMsg: error.details[0].message})
+
+//     const {email, password} = value
+    
+//     try {
+//         // check if user exist in the database
+//         const user = await User.findOne({email})
+//         // if user exist ? check password : => User not found
+//         if(!user) return res.status(400).json({errMsg: "Incorrect email or password"})
+        
+//         // check if password match
+//         const isMatch = await bcrypt.compare(password, user.password)
+//         if(!isMatch) return res.status(401).json({errMsg: "Incorrect email or password"})
+            
+//         // generate jwt token
+//         const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "40s")
+//         const refreshToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_REFRESH_TOKEN_KEY, "1d")
+        
+//         // save refresh token in database
+//         await RefreshToken.create({
+//             userId: user._id,
+//             token: refreshToken,
+//             createdAt: Date.now(),
+//             expiresIn: new Date(Date.now() + (24 * 60 * 60 * 1000))  // 24 hours
+//         })
+//         // send token to client through cookie- httpOnly
+//         res.cookie("jwt",refreshToken,{
+//             httpOnly: true,
+//             maxAge: 1000 * 60 * 60 * 24,
+//             sameSite: "none",
+//             secure: true  //you can remove or set to false during testing in devlopment mode  while using Thunder client 
+//         })
+//         return res.status(200).json({accessToken})
+//     } catch (error) {
+//         console.log(error)
+//         return res.sendStatus(500)
+//     }
+    
+// }
 
 const logoutUser = async (req,res) => {
     res.cookie("jwt","",{
@@ -156,43 +203,38 @@ const logoutUser = async (req,res) => {
 }
 
 const getUserProfile = async (req,res) => {
-    // get userId from url params to verify from the database
-    const {userId} = req.params
+   
     const authenticatedUserId = req.user.userId
-    const role = req.user.role
+    
     // check if authenticated user is the same as the user whose profile is requested from the params
     
-    if(authenticatedUserId) {
+    if(!authenticatedUserId) return res.status(401).json({errMsg: "Unauthorized"}) 
         
         try{
             // check if user with the ID exist in the DB
-            const user = await User.findById({_id:userId}).select('-password')
+            const user = await User.findById({_id:authenticatedUserId}).select('-password')
             if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
             return res.status(200).json(user)
         }catch(err) {
             console.log(err.message)
             return res.sendStatus(500)
         }
-    }else{
-        return res.status(401).json({errMsg: "Unauthorized"})
-       }
 }
 
 const updateUserProfile = async (req,res) => {
   
-       // get userId from url params to verify from the database
-       const {userId} = req.params
        const authenticatedUserId = req.user.userId
-       // check if authenticated user is the same as the user whose profile is requested from the params
-       if(authenticatedUserId) {
+      
+       if(!authenticatedUserId) return res.status(401).json({errMsg: "Unauthorized"}) 
+      
            try{
                // check if user with the ID exist in the DB
-               const user = await User.findById({_id:userId}).select('-password')
+               const user = await User.findById({_id:authenticatedUserId}).select('-password')
                if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
 
                // update user profile with new data from req.body
                const updatedUser = await User.findByIdAndUpdate(
-                {_id: userId}, 
+                {_id: authenticatedUserId}, 
                 {
                     firstName: req.body.firstName || user.firstName,
                     lastName: req.body.lastName || user.lastName,
@@ -208,15 +250,11 @@ const updateUserProfile = async (req,res) => {
                console.log(err.message)
                return res.sendStatus(500)
            }
-       }else{
-        return res.status(401).json({errMsg: "Unauthorized to update user profile"})
-       }
 } 
 
 const getAllUsers = async (req,res) => {
     
     const {role} = req.user
-    if (role !== "Admin") return res.sendStatus(403)
     try{
         // get all users from the database
         const users = await User.find({}).select('-password')
@@ -437,8 +475,8 @@ const verifyEmail = async (req,res) => {
 
 const handleRefreshToken = async (req,res) => {
     const cookies = req.cookies
+    console.log(cookies.jwt)
     if(!cookies?.jwt) return res.sendStatus(401)
-
     const refreshToken = cookies.jwt
 
     try {
@@ -451,7 +489,7 @@ const handleRefreshToken = async (req,res) => {
         
         const user = await User.findById(foundToken.userId).select("-password")
         if(!user) return res.sendStatus(401)
-        console.log(user)
+        
     
         // verify the existin token
         jwt.verify(refreshToken,process.env.JWT_REFRESH_TOKEN_KEY,(err,decoded) => {

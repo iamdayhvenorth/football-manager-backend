@@ -15,17 +15,16 @@ const {
 } = require("../controllers/authController")
 
 const authenticateUser = require("../middlewares/authenticateUser")
-const authorizePermission = require("../middlewares/authorizePermission")
-const checkPermission = require("../middlewares/checkPermission")
+const authorizePermission = require("../middlewares/authorizedRoles")
 
 const router = express.Router()
 
 router.post("/register", registerUser)
 router.post("/login", loginUser)
 router.get("/logout", logoutUser)
-router.get("/profile/:userId", authenticateUser,checkPermission, getUserProfile)
+router.get("/profile", authenticateUser, getUserProfile)
 router.put("/profile/change-password", authenticateUser,changePassword)
-router.put("/profile/:userId", authenticateUser,checkPermission, updateUserProfile)
+router.put("/profile", authenticateUser, updateUserProfile)
 router.post("/forgotpassword", forgotPassword)
 router.put("/resetpassword", resetPassword)
 router.get("/emailtoken", authenticateUser, resetEmaiLink)
@@ -33,7 +32,7 @@ router.get("/verify-email", verifyEmail)
 router.get("/refreshtoken", handleRefreshToken)
 
 
-router.get("/users", authenticateUser, authorizePermission, getAllUsers)
+router.get("/users", authenticateUser, authorizePermission("Admin"), getAllUsers)
 
 
 
