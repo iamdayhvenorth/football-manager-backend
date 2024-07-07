@@ -33,7 +33,6 @@ app.use(cors({
 
 
 app.get("/", (req,res) => {
-    console.log(req.cookies)
     res.send("Page is Working fine")
 })
 

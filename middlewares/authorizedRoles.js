@@ -4,16 +4,14 @@ const authorizePermission = (...allowedRoles) => {
        // check if user role is equal to aRmin cos all admin can view all users
        
            const {role} = req.user
-           if(!role) return res.senStatus(401)
+
+           if(!role) return res.sendStatus(401)
 
             const allowedRolesArr = [...allowedRoles]
             const assignedRoles = [role]
-
-            console.log(allowedRolesArr)
-            console.log(assignedRoles)
             
-            const verifyRoles = assignedRoles.map(r => allowedRoles.includes(r)).find(x => x === true)
-            console.log(verifyRoles)
+            const verifyRoles = assignedRoles.map(r => allowedRolesArr.includes(r)).find(x => x === true)
+            
             if(!verifyRoles) return res.sendStatus(401)
             next()
     }
