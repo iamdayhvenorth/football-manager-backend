@@ -21,7 +21,7 @@ const router = express.Router()
 
 router.post("/register", registerUser)
 router.post("/login", loginUser)
-router.get("/logout", logoutUser)
+router.post("/logout", logoutUser)
 router.get("/profile", authenticateUser, getUserProfile)
 router.put("/profile/change-password", authenticateUser,changePassword)
 router.put("/profile", authenticateUser, updateUserProfile)
@@ -29,7 +29,7 @@ router.post("/forgotpassword", forgotPassword)
 router.put("/resetpassword", resetPassword)
 router.get("/emailtoken", authenticateUser, resetEmaiLink)
 router.get("/verify-email", verifyEmail)
-router.get("/refreshtoken", handleRefreshToken)
+router.post("/refreshtoken", handleRefreshToken)
 
 
 router.get("/users", authenticateUser, authorizePermission("Admin"), getAllUsers)

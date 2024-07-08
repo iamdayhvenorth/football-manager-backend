@@ -164,29 +164,49 @@ const loginUser = async (req,res) => {
         // check if password match
         const isMatch = await bcrypt.compare(password, user.password)
         if(!isMatch) return res.status(401).json({errMsg: "Incorrect email or password"})
-            
-        // generate jwt token
-        const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "15m")
-        const refreshToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_REFRESH_TOKEN_KEY, "1d")
         
-        // save refresh token in database
-        await RefreshToken.create({
-            userId: user._id,
-            token: refreshToken,
-            createdAt: Date.now(),
-            expiresIn: new Date(Date.now() + (24 * 60 * 60 * 1000))  // 24 hours
+
+        const foundToken = await RefreshToken.findOne({
+            userId: user._id, 
+            expiresIn: {$gte: Date.now()}
         })
-        // send token to client through cookie- httpOnly
-        res.cookie("jwt",refreshToken,{
-            httpOnly: true,
-            maxAge: 1000 * 60 * 60 * 24,
-            sameSite: "none",
-            // secure: true  //you can remove or set to false during testing in devlopment mode  while using Thunder client 
-        })
-        return res.status(200).json({
-            user,
-            accessToken
-        })
+       
+        const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "2m")
+       
+        if(!foundToken) {
+            // save refresh token in database
+             // generate jwt token
+            const refreshToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_REFRESH_TOKEN_KEY, "1d")
+    
+            await RefreshToken.create({
+                userId: user._id,
+                token: refreshToken,
+                createdAt: Date.now(),
+                expiresIn: new Date(Date.now() + (24 * 60 * 60 * 1000))  // 24 hours
+             })
+
+              // send token to client through cookie- httpOnly
+            res.cookie("jwt",refreshToken,{
+                httpOnly: true,
+                maxAge: 1000 * 60 * 60 * 24,
+                sameSite: "none",
+                secure: true  //you can remove or set to false during testing in devlopment mode  while using Thunder client 
+            })
+        
+            return res.status(200).json({accessToken})
+        }else {
+            
+            // send token to client through cookie- httpOnly
+            res.cookie("jwt",foundToken.token,{
+                httpOnly: true,
+                maxAge: 1000 * 60 * 60 * 24,
+                sameSite: "none",
+                secure: true  //you can remove or set to false during testing in devlopment mode  while using Thunder client 
+            })
+            return res.status(200).json({accessToken})
+        }
+       
+        
     } catch (error) {
         console.log(error)
         return res.sendStatus(500)
@@ -518,8 +538,7 @@ const handleRefreshToken = async (req,res) => {
         
         const user = await User.findById(foundToken.userId).select("-password")
         if(!user) return res.sendStatus(401)
-        
-    
+         
         // verify the existin token
         jwt.verify(refreshToken,process.env.JWT_REFRESH_TOKEN_KEY,(err,decoded) => {
             if(err ) return res.sendStatus(403)
@@ -528,7 +547,7 @@ const handleRefreshToken = async (req,res) => {
             const accessToken = generateJwtToken(
                 {userId:decoded.userId, role:decoded.role},
                 process.env.JWT_ACCESS_TOKEN_KEY,
-                 "40s"
+                 "2m"
             )
             res.json({accessToken})
         })

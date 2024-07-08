@@ -18,7 +18,7 @@ app.use(cookieParser())
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 app.use(cors({
-    origin: "*", // allow requests from this origin
+    origin: "http://localhost:5173", // allow requests from this origin
     credentials: true, // allow sessions to persist across different requests
 }))
 
