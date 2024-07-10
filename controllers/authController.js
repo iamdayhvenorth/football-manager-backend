@@ -13,10 +13,6 @@ const RefreshToken = require("../models/refreshTokenModel")
 const asyncHandler = require("express-async-handler")
 const  handler = require("../middlewares/errorHandler")
 
-
-
-
-
 const registerUser =  async (req,res) => {
 
     // validate all the req.body info 
@@ -324,7 +320,7 @@ const changePassword = async (req,res) => {
     try{
         const user = await User.findById({_id:authenticatedUserId})
         if(!user) return res.status(404).json({errMsg: "User not found, please sign up"})
-        
+
         if(!oldPassword || !newPassword || !confirmNewPassword) return res.status(400).json({errMsg: "Please fill in all fields"})
 
            // check new password length, it should be minimum of 6 characters long
@@ -471,24 +467,24 @@ const resetEmaiLink = async (req,res) => {
         <p>DaveCodeSolutions Team</p>
     `
         await sendEmail(process.env.AUTH_EMAIL,user.email, "Email Verification", message)
-    
+
     //  send a notification link to user via email
     return res.status(200).json({msg: "A verification link sent to your email successfully"})
     } catch (error) {
         console.log(error)
         return res.sendStatus(500)
-        
+
     }
 }
 
 const verifyEmail = async (req,res) => {
     const {verifytoken,email} = req.query
     if(!verifytoken) return res.status(400).json({errMsg: "Token and Email required for verification"})
-    
+
     try {
         const user = await User.findOne({email})
         if(!user) return res.status(404).json({errMsg: "User not found"})
-            
+
         const foundToken = await EmailVerification.findOne({
             userId: user._id,
             verificationToken: verifytoken,
@@ -497,7 +493,7 @@ const verifyEmail = async (req,res) => {
     
         if(!foundToken) return res.status(404).json({errMsg: "Invalid or expired token"})
         if(user.isEmailVerified === true ) return res.status(409).json({errMsg: "Email Verified Already"})
-    
+
         user.isEmailVerified = true
         await user.save()
 
@@ -509,18 +505,16 @@ const verifyEmail = async (req,res) => {
         <h2>Hello, ${user.firstName}</h2>
         <p>Your email verification has been successful.</p>
         <p>Thank you for verifying your email.</p>
-        
         <p>Best regards,</p>
         <p>DaveCodeSolutions Team</p>
         `
         await sendEmail(process.env.AUTH_EMAIL,user.email, "Email Verification Success", message)
-        
         return res.status(200).json({msg: "Email verified successfully"})
     } catch (error) {
         console.log(error)
         return res.sendStatus(500)
     }
-   
+
 }
 
 const handleRefreshToken = async (req,res) => {
@@ -533,16 +527,15 @@ const handleRefreshToken = async (req,res) => {
             token: refreshToken,
             expiresIn: {$gte: Date.now()} // check if existing time is still greater the current time.. meaning it has not exp
         })
-    
+
         if(!foundToken) return res.status(401).json({errMsg: "No token found, please login "})
-        
+
         const user = await User.findById(foundToken.userId).select("-password")
         if(!user) return res.sendStatus(401)
-         
+
         // verify the existin token
         jwt.verify(refreshToken,process.env.JWT_REFRESH_TOKEN_KEY,(err,decoded) => {
             if(err ) return res.sendStatus(403)
-            
             // generate new JWT token and refresh token
             const accessToken = generateJwtToken(
                 {userId:decoded.userId, role:decoded.role},
@@ -551,13 +544,10 @@ const handleRefreshToken = async (req,res) => {
             )
             res.json({accessToken})
         })
-        
     } catch (error) {
         console.log(error)
         return res.sendStatus(500)
     }
-    
-   
 }
 
 
