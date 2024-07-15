@@ -1,30 +1,44 @@
 const express = require('express');
 const router = express.Router();
+const authenticateUser = require("../middlewares/authenticateUser")
+const {
+  getAllCustomers,
+  createCustomer,
+  getSingleCustomer,
+  updateCustomer,
+  deleteCustomer,
+  // getAllContacts,
+  searchCustomers,
+  listContacts,
+  addContact,
+  updateContact,
+  deleteContact,
+} = require("../controllers/customerController")
 
 
 router
   .route('/')
-  .post()
-  .get()
+  .post(authenticateUser, createCustomer)
+  .get(authenticateUser, getAllCustomers)
 
 router
   .route('/:customersId')
-  .get()
-  .put()
-  .delete()
+  .get(authenticateUser, getSingleCustomer )
+  .put(authenticateUser, updateCustomer )
+  .delete(authenticateUser, deleteCustomer)
 
 router
   .route('/search')
-  .get()
+  .get(authenticateUser, searchCustomers )
 
 router
   .route('/:customerId/contacts')
-  .get()
-  .post()
+  .get(authenticateUser, listContacts)
+  .post(authenticateUser, addContact )
 
 router
   .route('/:customerId/contacts/:contactId')
-  .put()
-  .delete()
+  .put(authenticateUser, updateContact )
+  .delete(authenticateUser, deleteContact )
 
 module.exports = router;

@@ -9,7 +9,7 @@ const authorizePermission = (...allowedRoles) => {
 
             const allowedRolesArr = [...allowedRoles]
             const assignedRoles = [role]
-
+ 
             const verifyRoles = assignedRoles.map(r => allowedRolesArr.includes(r)).find(x => x === true)
 
             if(!verifyRoles) return res.sendStatus(401)
