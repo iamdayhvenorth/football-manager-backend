@@ -27,4 +27,4 @@ router.route('/leads/:leadId')
 router
   .route('/opportunities')
   .get(authenticateUser, listOpportunities)
-  .post(authenticateUser, createOpport
+  .post(authenticateUser, createOpportunity)

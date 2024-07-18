@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
 
 const ContactSchema = new mongoose.Schema({
-  customer: {
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  customerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Customer',
   },
@@ -18,7 +22,7 @@ const ContactSchema = new mongoose.Schema({
     required: true,
   },
   dob: {
-    type: String,
+    type: Date,
     required: true,
   },
 },{ timestamps: true });

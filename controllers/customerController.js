@@ -14,9 +14,11 @@ const getAllCustomers = async (req, res) => {
 const createCustomer = async (req, res) => {
   try {
     const { error, value } = validateCustomer.validate({ ...req.body });
-    if (!value) throw new Error('Please Provide Customer Details');
+    console.log(value)
+    if (error) return res.status(400).send(error.details[0].message);
     // req.body.user = req.user.userId;
-    const customer = await Customer.create(value);
+    
+    const customer = await Customer.create({...value});
     res.status(200).json({ customer });
   } catch (error) {
     throw new Error(error);
@@ -72,17 +74,14 @@ const deleteCustomer = async (req, res) => {
   }
 };
 
-// const getAllContacts = async (req, res) => {
-//   try {
-//     const { id: customerId } = req.params;
-//     const contact = await Customer.findOne({ _id: customerId }).select(
-//       'contact'
-//     );
-//     res.status(200).json({ contact });
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// };
+const getAllContacts = async (req, res) => {
+  try {
+    const contact = await Contact.find({})
+    res.status(200).json({ contact });
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 
 const searchCustomers = async (req, res) => {
   try {
@@ -105,10 +104,13 @@ const listContacts = async (req, res) => {
 
 const addContact = async (req, res) => {
   try {
+    const authenticatedUserId = req.user.userId
     const contact = new Contact({
       ...req.body,
       customerId: req.params.customerId,
+      userId: authenticatedUserId,
     });
+    
     await contact.save();
     res.status(200).status(201).json(contact);
   } catch (err) {
@@ -143,16 +145,41 @@ const deleteContact = async (req, res) => {
   }
 };
 
+const contactInfo = async (req,res) => {
+const {firstName,gender,lastName,contact} = req.body
+const authenticatedUserId = req.user.userId
+
+
+
+  try {
+    const customer = await Customer.create({
+      firstName,lastName,gender,userId:authenticatedUserId
+    })
+    const contactInfo = await Contact.create({...contact,customerId: customer._id,userId:authenticatedUserId})
+   
+  
+    res.status(200).json({
+        customer,
+        contactInfo
+      
+    })
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   getAllCustomers,
   createCustomer,
   getSingleCustomer,
   updateCustomer,
   deleteCustomer,
-  // getAllContacts,
   searchCustomers,
   listContacts,
   addContact,
   updateContact,
   deleteContact,
+  contactInfo,
+  getAllContacts
 };

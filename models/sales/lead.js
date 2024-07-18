@@ -19,10 +19,6 @@ const leadSchema = new mongoose.Schema({
     type: String, 
     enum: ['New', 'Contacted', 'Qualified', 'Lost'], 
     default: 'New' 
-  },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
   }
 },{ timestamps: true });
 
