@@ -1,6 +1,6 @@
-const User = require("../models/user/userModel")
-const validateUser = require("../validators/userValidator")
-const Role = require("../models/user/role")
+const User = require('../models/user/userModel');
+const { validateUser, validateRole } = require('../validators/userValidator');
+const Role = require('../models/user/role');
 
 const getUsers = async (req, res) => {
   try {
@@ -39,7 +39,9 @@ const updateUser = async (req, res) => {
     const { error } = validateUser.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const user = await User.findByIdAndUpdate(req.params.userId, req.body, { new: true });
+    const user = await User.findByIdAndUpdate(req.params.userId, req.body, {
+      new: true,
+    });
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.status(200).json(user);
   } catch (error) {
@@ -69,7 +71,7 @@ const getUserRoles = async (req, res) => {
 
 const assignRole = async (req, res) => {
   try {
-    const { error } = roleSchema.validate(req.body);
+    const { error } = validateRole.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
     const user = await User.findById(req.params.userId);
@@ -79,7 +81,6 @@ const assignRole = async (req, res) => {
     await role.save();
     user.roles.push(role);
     await user.save();
-
     res.status(201).json(role);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -120,7 +121,6 @@ const searchUsers = async (req, res) => {
   }
 };
 
-
 module.exports = {
   getUsers,
   createUser,
@@ -131,5 +131,5 @@ module.exports = {
   assignRole,
   removeRole,
   getUserActivity,
-  searchUsers
+  searchUsers,
 };

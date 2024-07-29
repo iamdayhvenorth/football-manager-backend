@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    role: Role
+    roles: Role
 },{timestamps: true})
 
 userSchema.pre("save", async function () {
