@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const customerRoutes = require('./routes/customerRoutes.js');
 const UserRoutes = require('./routes/userRoutes.js');
 const supportRoutes = require('./routes/supportRoutes.js');
+const reportRoutes = require('./routes/reportRoutes.js');
 const errorHandler = require('./middlewares/errorHandler.js');
 
 // const rateLimiter = require("express-rate-limit")
@@ -44,6 +45,7 @@ app.use('/auth', authRoutes);
 app.use('/customers', customerRoutes);
 app.use('/users', UserRoutes);
 app.use('/support/tickets', supportRoutes);
+app.use('/analytics', reportRoutes);
 
 connectDB()
   .then(() => {
