@@ -34,4 +34,4 @@ router
   .get(authenticateUser, getOpportunity)
   .put(authenticateUser, updateOpportunity);
 
-module.exports = router;
+module.exports = router

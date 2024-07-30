@@ -167,7 +167,7 @@ const loginUser = async (req,res) => {
             expiresIn: {$gte: Date.now()}
         })
        
-        const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "2m")
+        const accessToken = generateJwtToken({userId:user._id, role:user.role},process.env.JWT_ACCESS_TOKEN_KEY, "4h")
        
         if(!foundToken) {
             // save refresh token in database

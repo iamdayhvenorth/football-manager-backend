@@ -1,25 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const authenticateUser = require("../middlewares/authenticateUser")
+const authorizePermission = require("../middlewares/authorizedRoles")
 const {
   getAllCustomers,
   createCustomer,
   getSingleCustomer,
   updateCustomer,
   deleteCustomer,
-  // getAllContacts,
+  getAllContacts,
   searchCustomers,
   listContacts,
   addContact,
   updateContact,
   deleteContact,
+  contactInfo,
 } = require("../controllers/customerController")
 
 
 router
   .route('/')
-  .post(authenticateUser, createCustomer)
-  .get(authenticateUser, getAllCustomers)
+  // .post(authenticateUser, createCustomer)
+  .post(authenticateUser, contactInfo)
+  .get(authenticateUser, getAllCustomers) // check
+
+router
+.route("/contacts")
+.get(authenticateUser,getAllContacts)
 
 router
   .route('/:customersId')

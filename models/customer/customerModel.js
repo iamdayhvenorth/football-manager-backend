@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const CustomerSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     firstName: {
       type: String,
       required: true,
@@ -15,10 +19,7 @@ const CustomerSchema = new mongoose.Schema(
       required: true,
       enum: ['male', 'female'],
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
+    // contact: ,
   },
   { timestamps: true }
 );
