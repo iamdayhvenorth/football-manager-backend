@@ -9,4 +9,12 @@ const validateUser = joi.object({
     gender: joi.string().required().valid("male","female")
 })
 
-module.exports = validateUser
+const validateRole= joi.object({
+    name: joi.string().required()
+  });
+  
+
+module.exports = {
+    validateUser,
+    validateRole
+}

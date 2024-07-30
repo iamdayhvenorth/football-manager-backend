@@ -1,7 +1,6 @@
 const mongoose = require("mongoose")
+const Role = require("./role")
 const bcrypt = require("bcryptjs")
-const { type } = require("../validators/userValidator")
-const { required } = require("joi")
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -35,12 +34,7 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    role: {
-        type: String,
-        required: true,
-        enum: ["Admin", "Manager", "Sales Representative"],
-        default: "Sales Representative"
-    },
+    roles: Role
 },{timestamps: true})
 
 userSchema.pre("save", async function () {
