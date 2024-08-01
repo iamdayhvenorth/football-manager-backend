@@ -2,6 +2,7 @@ const Settings = require("../models/settings/settings");
 const Log = require("../models/settings/log")
 const AuditLog = require('../models/settings/audit')
 const { validationResult } = require('express-validator');
+const schedule = require('node-schedule');
 
 const getSettings = async (req, res) => {
     try {
@@ -70,6 +71,17 @@ const restoreBackup = async (req, res) => {
         // to be done
     res.json({ message: 'Backup restored' });
 };
+
+// Schedule a job to clear logs periodically (example: daily at midnight)
+schedule.scheduleJob('0 0 * * *', async () => {
+    try {
+      await Log.deleteMany();
+      logger.info('Scheduled log clearance executed');
+    } catch (err) {
+      logger.error('Error during scheduled log clearance', err);
+    }
+});
+
 
 
 

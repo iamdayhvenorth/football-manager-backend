@@ -9,17 +9,18 @@ const {
     createBackup,
     restoreBackup
 } = require("../controllers/settingsConfigurationCOntrollers")
+const authenticateUser = require("../middlewares/authenticateUser")
 
 const router = express.Router();
 
-router.get('/', getSettings);
-router.put('/', updateSettings);
-router.get('/logs', listLogs);
-router.post('/logs/clear', clearLogs);
-router.get('/audit', listAuditLogs);
+router.get('/',authenticateUser, getSettings);
+router.put('/',authenticateUser, updateSettings);
+router.get('/logs',authenticateUser, listLogs);
+router.post('/logs/clear',authenticateUser, clearLogs);
+router.get('/audit',authenticateUser, listAuditLogs);
 
-router.get('/backup', getBackupStatus);
-router.post('/backup', createBackup);
-router.post('/restore', restoreBackup);
+router.get('/backup',authenticateUser, getBackupStatus);
+router.post('/backup',authenticateUser, createBackup);
+router.post('/restore',authenticateUser, restoreBackup);
 
 module.exports = router;
