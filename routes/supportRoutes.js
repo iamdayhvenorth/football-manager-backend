@@ -1,4 +1,5 @@
 const express = require('express');
+const authenticateUser = require("../middlewares/authenticateUser")
 const {
   getTickets,
   createTicket,
@@ -13,19 +14,22 @@ const {
 
 const router = express.Router();
 
-router.route('/').get(getTickets).post(createTicket);
+router.route('/', authenticateUser,).get(authenticateUser, getTickets).post(authenticateUser, createTicket);
 
 router
   .route('/:ticketId')
-  .get(getTicketById)
-  .put(updateTicket)
-  .delete(deleteTicket);
+  .get(authenticateUser, getTicketById)
+  .put(authenticateUser, updateTicket)
+  .delete(authenticateUser, deleteTicket);
 
-router.route('/:ticketId/comments').get(getComments).post(addComment);
+router
+  .route('/:ticketId/comments')
+  .get(authenticateUser, getComments)
+  .post(authenticateUser, addComment);
 
 router
   .route('/ticketId/comments/:commentId')
-  .put(updateComment)
-  .delete(deleteComment);
+  .put(authenticateUser, updateComment)
+  .delete(authenticateUser, deleteComment);
 
 module.exports = router;

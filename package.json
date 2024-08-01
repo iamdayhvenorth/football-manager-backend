@@ -18,12 +18,15 @@
     "express-async-errors": "^3.1.1",
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^7.3.1",
+    "express-validator": "^7.1.0",
     "http-status-codes": "^2.3.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.4",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.14"
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^6.9.14",
+    "winston": "^3.13.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
