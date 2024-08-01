@@ -10,9 +10,11 @@ const supportRoutes = require('./routes/supportRoutes.js');
 const reportRoutes = require('./routes/reportRoutes.js');
 const errorHandler = require('./middlewares/errorHandler.js');
 const settingsRoutes = require('./routes/settings');
+const contactsRoutes = require('./routes/contacts');
 const multer = require('multer');
 const winston = require('winston');
-const schedule = require('node-schedule');
+const helmet = require('helmet');
+
 
 // const rateLimiter = require("express-rate-limit")
 
@@ -24,6 +26,8 @@ const upload = multer({ dest: 'uploads/' });
 // default middlewares
 app.use(cookieParser());
 app.use(express.json());
+app.use(cors());
+app.use(helmet());
 app.use(express.urlencoded({ extended: true }));
 
 app.use((err, req, res, next) => {
@@ -50,6 +54,7 @@ app.use('/users', UserRoutes);
 app.use('/support/tickets', supportRoutes);
 app.use('/analytics', reportRoutes);
 app.use('/settings', settingsRoutes);
+app.use('/contacts', contactsRoutes);
 
 // Schedule a job to clear logs periodically (example: daily at midnight)
 schedule.scheduleJob('0 0 * * *', async () => {
