@@ -10,17 +10,18 @@ const {
   updateReport,
   deleteReport
 } = require('../controllers/activityController');
+const authenticateUser = require("../middlewares/authenticateUser")
 
 const router = express.Router();
 
-router.get('/dashboard', getDashboardData);
-router.get('/sales', getSalesAnalytics);
-router.get('/support', getSupportAnalytics);
-router.get('/customers', getCustomerAnalytics);
-router.get('/reports', getReports);
-router.post('/reports', createReport);
-router.get('/reports/:reportId', getReportById);
-router.put('/reports/:reportId', updateReport);
-router.delete('/reports/:reportId', deleteReport);
+router.get('/dashboard', authenticateUser, getDashboardData);
+router.get('/sales', authenticateUser, getSalesAnalytics);
+router.get('/support', authenticateUser, getSupportAnalytics);
+router.get('/customers', authenticateUser, getCustomerAnalytics);
+router.get('/reports', authenticateUser, getReports);
+router.post('/reports', authenticateUser, createReport);
+router.get('/reports/:reportId', authenticateUser, getReportById);
+router.put('/reports/:reportId', authenticateUser, updateReport);
+router.delete('/reports/:reportId', authenticateUser, deleteReport);
 
 module.exports = router;
