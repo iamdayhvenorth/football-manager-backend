@@ -34,7 +34,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    roles: Role
+    roles: {
+        type: [Role.schema],
+        default: []
+    }
 },{timestamps: true})
 
 userSchema.pre("save", async function () {

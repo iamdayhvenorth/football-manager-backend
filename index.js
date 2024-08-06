@@ -6,6 +6,7 @@ require("dotenv").config()
 const authRoutes = require('./routes/authRoutes')
 const customerRoutes = require("./routes/customerRoutes.js")
 const errorHandler = require('./middlewares/errorHandler.js')
+const multer = require('multer')
 
 // const rateLimiter = require("express-rate-limit")
 
