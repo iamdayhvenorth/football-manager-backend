@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser")
 const cors = require("cors")
 require("dotenv").config()
 const authRoutes = require('./routes/authRoutes')
+const profileRoutes = require('./routes/profileRoutes')
 const customerRoutes = require("./routes/customerRoutes.js")
 const errorHandler = require('./middlewares/errorHandler.js')
 
@@ -40,6 +41,7 @@ app.get("/", (req,res) => {
 app.use(errorHandler)
 // routes
 app.use('/auth', authRoutes)
+app.use('/profile', profileRoutes)
 app.use("/customers", customerRoutes)
 
 
