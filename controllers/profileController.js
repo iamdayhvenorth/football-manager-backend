@@ -21,43 +21,33 @@ const getProfile = async (req,res) => {
 }
 
 const updateProfile = async (req,res) => {
-  
-       const authenticatedUserId = req.user.userId
-       const {profileId} = req.params
-      console.log(profileId)
-      console.log(authenticatedUserId)
-       if(!authenticatedUserId ) return res.status(401).json({errMsg: "Unauthorized"}) 
+    const authenticatedUserId = req.user.userId
       
-           try{
-               // check if user with the ID exist in the DB
-               const user = await User.findById(profileId).select('-password')
-               const authUser = await User.findById(authenticatedUserId).select('-password')
-               if(!user ) return res.status(404).json({errMsg: "User not found"})
-                console.log(authUser)
+    if(!authenticatedUserId) return res.status(401).json({errMsg: "Unauthorized"}) 
+   
+        try{
+            // check if user with the ID exist in the DB
+            const user = await User.findById({_id:authenticatedUserId}).select('-password')
+            if(!user) return res.status(404).json({errMsg: "User with the provided ID not found"})
 
-                if( authUser._id === user._id || authUser.role === "Admin") {
-                      // update user profile with new data from req.body
-                await User.findByIdAndUpdate(
-                    {_id: profileId}, 
-                    {
-                        firstName: req.body.firstName || user.firstName,
-                        lastName: req.body.lastName || user.lastName,
-                        dob: req.body.dob || user.dob,
-                        email: user.email,
-                        gender:user.gender
-                    }, 
-                    {new: true}
-                    ).select("-password")
- 
-                    return res.status(200).json({msg: "User profile updated successfully",updatedUser})
-                }
-                else {
-                    return res.status(401).json({errMsg: "Unauthorized to update this user's profile"})
-                }
-           }catch(err) {
-               console.log(err.message)
-               return res.sendStatus(500)
-           }
+            // update user profile with new data from req.body
+            const updatedUser = await User.findByIdAndUpdate(
+             {_id: authenticatedUserId}, 
+             {
+                 firstName: req.body.firstName || user.firstName,
+                 lastName: req.body.lastName || user.lastName,
+                 dob: req.body.dob || user.dob,
+                 email: user.email,
+                 gender:user.gender
+             }, 
+             {new: true}
+         ).select("-password")
+
+            return res.status(200).json(updatedUser)
+        }catch(err) {
+            console.log(err.message)
+            return res.sendStatus(500)
+        }
 } 
 
 const getAllUsers = async (req,res) => {

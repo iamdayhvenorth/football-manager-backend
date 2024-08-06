@@ -27,4 +27,11 @@ router.route('/leads/:leadId')
 router
   .route('/opportunities')
   .get(authenticateUser, listOpportunities)
-  .post(authenticateUser, createOpportunity)
+  .post(authenticateUser, createOpportunity);
+
+router
+  .route('/opportunities/:opportunityId')
+  .get(authenticateUser, getOpportunity)
+  .put(authenticateUser, updateOpportunity);
+
+module.exports = router
